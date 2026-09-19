@@ -97,12 +97,4 @@
     });
   });
 
-  document.querySelectorAll('.vslide video').forEach(video => {
-    video.addEventListener('pointerenter', () => {
-      if (!video.closest('.vslide')?.classList.contains('active')) return;
-      video.muted = true;
-      video.play().catch(() => {});
-    });
-    video.addEventListener('pointerleave', () => video.pause());
-  });
 })();
