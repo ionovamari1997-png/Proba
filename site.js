@@ -50,6 +50,12 @@
     var videos = Array.prototype.slice.call(document.querySelectorAll('.vslide video'));
     var current = 0;
 
+    function ensureVideoSource(video){
+      if(!video || video.getAttribute('src') || !video.dataset.src){ return; }
+      video.src = video.dataset.src;
+      video.load();
+    }
+
     function applyOrientation(){
       var orientation = slides[current].getAttribute('data-orientation');
       stage.classList.toggle('is-landscape', orientation === 'landscape');
@@ -64,6 +70,7 @@
       slides[current].classList.remove('active');
       current = (index + slides.length) % slides.length;
       slides[current].classList.add('active');
+      ensureVideoSource(videos[current]);
       applyOrientation();
       counter.textContent = (current + 1) + ' / ' + slides.length;
     }
@@ -71,6 +78,7 @@
     if(prevBtn && nextBtn && slides.length){
       prevBtn.addEventListener('click', function(){ goTo(current - 1); });
       nextBtn.addEventListener('click', function(){ goTo(current + 1); });
+      ensureVideoSource(videos[0]);
       applyOrientation();
       videos.forEach(function(video){
         video.defaultMuted = false;
@@ -85,6 +93,35 @@
         });
       });
     }
+  })();
+
+  // Интервью загружаются только при приближении к экрану.
+  (function(){
+    var interviewVideos = Array.prototype.slice.call(
+      document.querySelectorAll('.interview-card video[data-src]')
+    );
+    if(!interviewVideos.length){ return; }
+
+    function ensureVideoSource(video){
+      if(!video || video.getAttribute('src') || !video.dataset.src){ return; }
+      video.src = video.dataset.src;
+      video.load();
+    }
+
+    if(!('IntersectionObserver' in window)){
+      interviewVideos.forEach(ensureVideoSource);
+      return;
+    }
+
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(!entry.isIntersecting){ return; }
+        ensureVideoSource(entry.target);
+        observer.unobserve(entry.target);
+      });
+    }, {rootMargin:'250px'});
+
+    interviewVideos.forEach(function(video){ observer.observe(video); });
   })();
 
   // Останавливаем другие ролики, когда пользователь включает новое видео.
@@ -303,10 +340,12 @@
   // ===== TESTIMONIAL CAROUSEL =====
   (function(){
     var track = document.getElementById('testiTrack');
+    if(!track){ return; }
     var cards = track.querySelectorAll('.testi-card');
     var dots = document.querySelectorAll('.testi-dot');
     var prevBtn = document.getElementById('testiPrev');
     var nextBtn = document.getElementById('testiNext');
+    if(!cards.length || !prevBtn || !nextBtn){ return; }
     var mobileReviews = window.matchMedia('(max-width:760px)');
     var current = 0;
     var heightTimer;
@@ -374,126 +413,83 @@
 
 
 
-  // ===== UPDATED CORPORATE PHOTOS =====
+  // ===== CORPORATE VIDEO =====
   (function(){
-    var newPhotos = [
-      {src:'corporate-fast-01.jpg', alt:'Ведущий проводит интерактив на корпоративном мероприятии', position:'center center'},
-      {src:'corporate-fast-02.jpg', alt:'Ведущий на летнем корпоративном мероприятии', position:'center 32%'},
-      {src:'corporate-fast-03.jpg', alt:'Ведущий с микрофоном на корпоративной вечеринке', position:'center 35%'},
-      {src:'corporate-fast-04.jpg', alt:'Ведущий на сцене праздничного корпоративного вечера', position:'center 30%'},
-      {src:'corporate-fast-05.jpg', alt:'Ведущий на новогодней корпоративной сцене', position:'center 38%'},
-      {src:'corporate-fast-06.jpg', alt:'Ведущий с микрофоном на корпоративном празднике', position:'center 32%'}
-    ];
+    var section = document.getElementById('corporate');
+    if(!section){ return; }
+    var inner = section.querySelector('.acc-body-inner');
+    var photos = inner && inner.querySelector('.ph-grid-uniform');
+    var miniVideo = inner && inner.querySelector('.corporate-mini-video-card');
+    if(!inner || !photos || !miniVideo){ return; }
 
-    var extraCorporatePhotos = [
-      {src:'corporate-fast-07.jpg', alt:'Общее фото гостей корпоративного праздника', position:'center 46%'},
-      {src:'corporate-fast-08.jpg', alt:'Ведущий проводит интерактив с подарками', position:'center 30%'},
-      {src:'corporate-fast-09.jpg', alt:'Ведущий проводит конкурс с гостями', position:'74% center'},
-      {src:'corporate-fast-10.jpg', alt:'Ведущий общается с участниками корпоратива', position:'center center'}
-    ];
+    photos.classList.add('event-photo-lead','has-corporate-video');
+    inner.insertBefore(photos, inner.firstChild);
+    miniVideo.classList.add('ph','corporate-video-tile');
+    photos.appendChild(miniVideo);
 
-    var corporateImages = Array.prototype.slice.call(
-      document.querySelectorAll('#corp-grid img')
-    );
-    newPhotos.forEach(function(photo, index){
-      if(!corporateImages[index]) return;
-      corporateImages[index].src = photo.src;
-      corporateImages[index].alt = photo.alt;
-      corporateImages[index].style.objectPosition = photo.position;
-      corporateImages[index].classList.add('new-event-photo');
-    });
+    var video = miniVideo.querySelector('video');
+    var control = miniVideo.querySelector('.corporate-video-control');
+    var controlIcon = control && control.querySelector('span');
 
-    var corporateGrid = document.getElementById('corp-grid');
-    if(corporateGrid){
-      extraCorporatePhotos.forEach(function(photo){
-        var tile = document.createElement('div');
-        var image = document.createElement('img');
-        tile.className = 'ph';
-        image.src = photo.src;
-        image.alt = photo.alt;
-        image.loading = 'lazy';
-        image.className = 'new-event-photo';
-        image.style.objectPosition = photo.position;
-        tile.appendChild(image);
-        corporateGrid.appendChild(tile);
-      });
+    function ensureVideoSource(){
+      if(!video || video.getAttribute('src')){ return; }
+      var mobile = window.matchMedia('(max-width:760px)').matches;
+      video.dataset.selectedSrc = mobile ? video.dataset.mobileSrc : video.dataset.desktopSrc;
+      if(!video.dataset.selectedSrc){ return; }
+      video.src = video.dataset.selectedSrc;
+      video.load();
     }
 
-    ['weddings','corporate','birthdays'].forEach(function(sectionId){
-      var section = document.getElementById(sectionId);
-      if(!section) return;
-      var inner = section.querySelector('.acc-body-inner');
-      var photos = inner && inner.querySelector('.ph-grid-uniform');
-      if(!inner || !photos) return;
-      photos.classList.add('event-photo-lead');
-      inner.insertBefore(photos, inner.firstChild);
-      if(sectionId === 'corporate'){
-        var miniVideo = inner.querySelector('.corporate-mini-video-card');
-        if(miniVideo){
-          miniVideo.classList.add('ph','corporate-video-tile');
-          photos.classList.add('has-corporate-video');
-          photos.appendChild(miniVideo);
-          var video = miniVideo.querySelector('video');
-          var control = miniVideo.querySelector('.corporate-video-control');
-          var controlIcon = control && control.querySelector('span');
-          function ensureVideoSource(){
-            if(!video || video.getAttribute('src')) return;
-            video.dataset.selectedSrc = window.matchMedia('(max-width:760px)').matches
-              ? video.dataset.mobileSrc
-              : video.dataset.desktopSrc;
-            video.src = video.dataset.selectedSrc;
-            video.load();
-          }
-          function syncVideoControl(){
-            var isPlaying = video && !video.paused && !video.ended;
-            miniVideo.classList.toggle('is-playing', isPlaying);
-            if(control){
-              control.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
-              control.setAttribute('aria-label', isPlaying ? 'Поставить видео на паузу' : 'Воспроизвести видео');
-            }
-            if(controlIcon){ controlIcon.textContent = isPlaying ? '❚❚' : '▶'; }
-          }
-          if(video && control){
-            video.addEventListener('error', function(){
-              var alternate = video.dataset.selectedSrc === video.dataset.mobileSrc
-                ? video.dataset.desktopSrc : video.dataset.mobileSrc;
-              if(!video.dataset.fallbackTried && alternate){
-                video.dataset.fallbackTried = '1';
-                video.dataset.selectedSrc = alternate;
-                video.src = alternate;
-                video.load();
-                return;
-              }
-              miniVideo.classList.add('is-error');
-              control.disabled = true;
-              control.setAttribute('aria-label', 'Видео не удалось загрузить');
-              if(controlIcon){ controlIcon.textContent = '!'; }
-            });
-            control.addEventListener('click', function(){
-              ensureVideoSource();
-              if(video.paused || video.ended){
-                var attempt = video.play();
-                if(attempt && typeof attempt.catch === 'function'){
-                  attempt.catch(function(){
-                    miniVideo.classList.add('is-error');
-                    control.setAttribute('aria-label', 'Видео не удалось загрузить');
-                    if(controlIcon){ controlIcon.textContent = '!'; }
-                  });
-                }
-              } else { video.pause(); }
-            });
-            video.addEventListener('click', function(){ control.click(); });
-            video.addEventListener('dblclick', function(event){ event.preventDefault(); });
-            video.addEventListener('play', syncVideoControl);
-            video.addEventListener('pause', syncVideoControl);
-            video.addEventListener('ended', syncVideoControl);
-            syncVideoControl();
-          }
+    function syncVideoControl(){
+      var isPlaying = video && !video.paused && !video.ended;
+      miniVideo.classList.toggle('is-playing', isPlaying);
+      if(control){
+        control.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+        control.setAttribute('aria-label', isPlaying ? 'Поставить видео на паузу' : 'Воспроизвести видео');
+      }
+      if(controlIcon){ controlIcon.textContent = isPlaying ? '❚❚' : '▶'; }
+    }
+
+    if(!video || !control){ return; }
+
+    video.addEventListener('error', function(){
+      var alternate = video.dataset.selectedSrc === video.dataset.mobileSrc
+        ? video.dataset.desktopSrc : video.dataset.mobileSrc;
+      if(!video.dataset.fallbackTried && alternate){
+        video.dataset.fallbackTried = '1';
+        video.dataset.selectedSrc = alternate;
+        video.src = alternate;
+        video.load();
+        return;
+      }
+      miniVideo.classList.add('is-error');
+      control.disabled = true;
+      control.setAttribute('aria-label', 'Видео не удалось загрузить');
+      if(controlIcon){ controlIcon.textContent = '!'; }
+    });
+
+    control.addEventListener('click', function(){
+      ensureVideoSource();
+      if(video.paused || video.ended){
+        var attempt = video.play();
+        if(attempt && typeof attempt.catch === 'function'){
+          attempt.catch(function(){
+            miniVideo.classList.add('is-error');
+            control.setAttribute('aria-label', 'Видео не удалось загрузить');
+            if(controlIcon){ controlIcon.textContent = '!'; }
+          });
         }
+      } else {
+        video.pause();
       }
     });
+    video.addEventListener('click', function(){ control.click(); });
+    video.addEventListener('dblclick', function(event){ event.preventDefault(); });
+    video.addEventListener('play', syncVideoControl);
+    video.addEventListener('pause', syncVideoControl);
+    video.addEventListener('ended', syncVideoControl);
+    syncVideoControl();
   })();
-
 
 
 (() => {

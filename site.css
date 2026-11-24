@@ -2767,3 +2767,17 @@
  .formats-swipe-hint{display:block;margin:8px 0 0;text-align:center;font-size:10px;font-weight:700;letter-spacing:.04em;color:rgba(255,255,255,.58);}
  .formats-price-note{margin:12px 0 0;padding:11px 13px;font-size:10px;}
 }
+
+
+/* Dedicated video filter: sends visitors straight to the video portfolio. */
+.nav-links .video-filter-link{
+  padding:8px 12px;border-radius:999px;background:#a51e12;color:#fff;
+  box-shadow:0 8px 20px rgba(165,30,18,.2);
+}
+.nav-links .video-filter-link:hover{background:#84170e;color:#fff;}
+@media(max-width:760px){
+  .nav-links .video-filter-link{
+    border-color:#a51e12!important;background:#a51e12!important;color:#fff!important;
+    box-shadow:none!important;
+  }
+}
